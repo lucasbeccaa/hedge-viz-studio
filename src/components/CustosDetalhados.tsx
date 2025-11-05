@@ -1,64 +1,42 @@
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CustosCultivo } from "@/data/hedgeData";
-
 interface CustosDetalhadosProps {
   custos: CustosCultivo;
   onCustosChange: (custos: CustosCultivo) => void;
 }
-
-export const CustosDetalhados = ({ custos, onCustosChange }: CustosDetalhadosProps) => {
+export const CustosDetalhados = ({
+  custos,
+  onCustosChange
+}: CustosDetalhadosProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'BRL'
     }).format(value);
   };
-
   const handleValueChange = (field: keyof CustosCultivo, value: number) => {
-    const updatedCustos = { ...custos, [field]: value };
-    
+    const updatedCustos = {
+      ...custos,
+      [field]: value
+    };
+
     // Recalcular totais
-    updatedCustos.totalCustosVariaveis = 
-      updatedCustos.operacaoMaquinas +
-      updatedCustos.manutencaoBenfeitorias +
-      updatedCustos.maoObraTemporaria +
-      updatedCustos.sementes +
-      updatedCustos.fertilizantes +
-      updatedCustos.defensivos +
-      updatedCustos.despesasGerais +
-      updatedCustos.transporteExterno +
-      updatedCustos.assistenciaTecnica +
-      updatedCustos.proagroSeguro;
-    
-    updatedCustos.totalCustosFixos = 
-      updatedCustos.depreciacaoMaquinas +
-      updatedCustos.depreciacaoBenfeitorias +
-      updatedCustos.sistematizacaoSolo +
-      updatedCustos.seguroCapital +
-      updatedCustos.maoObraPermanente +
-      updatedCustos.remuneracaoCapital +
-      updatedCustos.remuneracaoTerra;
-    
+    updatedCustos.totalCustosVariaveis = updatedCustos.operacaoMaquinas + updatedCustos.manutencaoBenfeitorias + updatedCustos.maoObraTemporaria + updatedCustos.sementes + updatedCustos.fertilizantes + updatedCustos.defensivos + updatedCustos.despesasGerais + updatedCustos.transporteExterno + updatedCustos.assistenciaTecnica + updatedCustos.proagroSeguro;
+    updatedCustos.totalCustosFixos = updatedCustos.depreciacaoMaquinas + updatedCustos.depreciacaoBenfeitorias + updatedCustos.sistematizacaoSolo + updatedCustos.seguroCapital + updatedCustos.maoObraPermanente + updatedCustos.remuneracaoCapital + updatedCustos.remuneracaoTerra;
     updatedCustos.custoOperacional = updatedCustos.totalCustosVariaveis;
     updatedCustos.custoTotal = updatedCustos.totalCustosVariaveis + updatedCustos.totalCustosFixos;
-    
     onCustosChange(updatedCustos);
   };
-
-  const EditableValue = ({ value, field }: { value: number; field: keyof CustosCultivo }) => (
-    <Input
-      type="number"
-      value={value}
-      onChange={(e) => handleValueChange(field, parseFloat(e.target.value) || 0)}
-      className="h-8 w-32 text-right bg-surface border-border text-foreground font-medium"
-      step="0.01"
-    />
-  );
-
-  return (
-    <Card className="bg-gradient-card border-border/50 shadow-card p-6">
-      <h2 className="text-xl font-semibold text-foreground mb-6">Planilha de Custos - Cultivo de Soja</h2>
+  const EditableValue = ({
+    value,
+    field
+  }: {
+    value: number;
+    field: keyof CustosCultivo;
+  }) => <Input type="number" value={value} onChange={e => handleValueChange(field, parseFloat(e.target.value) || 0)} className="h-8 w-32 text-right bg-surface border-border text-foreground font-medium" step="0.01" />;
+  return <Card className="bg-gradient-card border-border/50 shadow-card p-6">
+      <h2 className="text-xl font-semibold text-foreground mb-6">Custos de Produção Soja por Hectare</h2>
       
       <div className="space-y-6">
         {/* Custos Variáveis */}
@@ -167,6 +145,5 @@ export const CustosDetalhados = ({ custos, onCustosChange }: CustosDetalhadosPro
           </div>
         </div>
       </div>
-    </Card>
-  );
+    </Card>;
 };
