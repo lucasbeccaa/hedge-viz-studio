@@ -36,8 +36,8 @@ const Index = () => {
   // Cálculo da quantidade de dólares baseado no valor da operação
   const quantidadeDolar = quantidadeBushel * travaNDFSoja;
   
-  // Custos da planilha
-  const custosOperacional = custosCultivo.custoOperacional * estimativas.quantidadeSacas;
+  // Custos da planilha (Custo Operacional por hectare * Área de cultivo)
+  const custosOperacional = custosCultivo.custoOperacional * estimativas.areaCultivo;
 
   // Cálculos dos KPIs conforme fórmula fornecida
   const calculaFaturamento = () => {
