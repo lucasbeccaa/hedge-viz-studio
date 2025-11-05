@@ -24,6 +24,10 @@ const Index = () => {
   const [precoSojaFisico, setPrecoSojaFisico] = useState(precoMercadoFisico.precoCIFSantos);
   const [dolarPtax, setDolarPtax] = useState(informacoesHedge.dolarPtax);
   
+  // Estados para estimativas de produção
+  const [sacasPorHectare, setSacasPorHectare] = useState(estimativas.sacasPorHectare);
+  const [areaCultivo, setAreaCultivo] = useState(estimativas.areaCultivo);
+  
   // Estado para gerenciar cenários salvos
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   
@@ -35,8 +39,11 @@ const Index = () => {
   // Cálculo da quantidade de dólares baseado no valor da operação
   const quantidadeDolar = quantidadeBushel * travaNDFSoja;
   
+  // Cálculo da quantidade total de sacas baseado nos valores editáveis
+  const quantidadeSacas = sacasPorHectare * areaCultivo;
+  
   // Custos da planilha (Custo Operacional por hectare * Área de cultivo)
-  const custosOperacional = custosCultivo.custoOperacional * estimativas.areaCultivo;
+  const custosOperacional = custosCultivo.custoOperacional * areaCultivo;
 
   // Cálculos dos KPIs conforme fórmula fornecida
   const calculaFaturamento = () => {
@@ -56,25 +63,25 @@ const Index = () => {
 
   // Cálculos separados: Parcela Protegida vs Parcela Exposta
   const bushelsParaSacas = quantidadeBushel / 2.204; // Sacas protegidas pelo hedge
-  const sacasExpostas = estimativas.quantidadeSacas - bushelsParaSacas; // Sacas sem proteção
-  const percentualCobertura = (bushelsParaSacas / estimativas.quantidadeSacas) * 100;
+  const sacasExpostas = quantidadeSacas - bushelsParaSacas; // Sacas sem proteção
+  const percentualCobertura = (bushelsParaSacas / quantidadeSacas) * 100;
   
   // Parcela Protegida (Hedge)
   const faturamentoProtegido = calculaFaturamento();
   const valorPorSacaProtegida = faturamentoProtegido / bushelsParaSacas;
-  const custoOperacionalProtegido = (bushelsParaSacas / estimativas.quantidadeSacas) * custosOperacional;
+  const custoOperacionalProtegido = (bushelsParaSacas / quantidadeSacas) * custosOperacional;
   const lucroProtegido = faturamentoProtegido - custoOperacionalProtegido;
   
   // Parcela Exposta (Spot)
   const faturamentoExpostoSpot = precoSojaFisico * sacasExpostas;
   const valorPorSacaSpot = precoSojaFisico;
-  const custoOperacionalExposto = (sacasExpostas / estimativas.quantidadeSacas) * custosOperacional;
+  const custoOperacionalExposto = (sacasExpostas / quantidadeSacas) * custosOperacional;
   const lucroExpostoSpot = faturamentoExpostoSpot - custoOperacionalExposto;
   
   // Totais Consolidados
   const faturamentoTotal = faturamentoProtegido + faturamentoExpostoSpot;
   const lucroTotal = lucroProtegido + lucroExpostoSpot;
-  const valorPorSaca = faturamentoTotal / estimativas.quantidadeSacas;
+  const valorPorSaca = faturamentoTotal / quantidadeSacas;
   const diferencaTravaCerealista = valorPorSacaProtegida - informacoesHedge.precoRealPorSaca;
 
   const formatCurrency = (value: number) => {
@@ -100,7 +107,7 @@ const Index = () => {
   // Calcular resultados para cada cenário
   const calculateScenarioResults = (scenario: Scenario): ScenarioResults => {
     const bushelsParaSacas = quantidadeBushel / 2.204;
-    const sacasExpostas = estimativas.quantidadeSacas - bushelsParaSacas;
+    const sacasExpostas = quantidadeSacas - bushelsParaSacas;
     
     // Parcela Protegida - usando fórmula correta
     const valorVendaSojaFisica = scenario.precoSojaFisico * bushelsParaSacas;
@@ -114,7 +121,7 @@ const Index = () => {
     // Totais
     const faturamento = faturamentoProtegido + faturamentoExpostoSpot;
     const lucro = faturamento - custosOperacional;
-    const valorSaca = faturamento / estimativas.quantidadeSacas;
+    const valorSaca = faturamento / quantidadeSacas;
     const margem = (lucro / faturamento) * 100;
     const roi = (lucro / custosOperacional) * 100;
 
@@ -160,7 +167,7 @@ const Index = () => {
                   <MapPin className="h-4 w-4 text-primary" />
                   <div>
                     <p className="text-xs text-muted-foreground">Área Total</p>
-                    <p className="font-semibold text-foreground">{estimativas.areaCultivo} hectares</p>
+                    <p className="font-semibold text-foreground">{areaCultivo} hectares</p>
                   </div>
                 </div>
               </div>
@@ -169,6 +176,31 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-6 py-8 space-y-8">
+        {/* Seção de Estimativas de Produção */}
+        <section className="bg-gradient-card border border-border/50 rounded-lg shadow-card p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-6">Estimativas de Produção</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <EditableInput
+              label="Produtividade (sacas/ha)"
+              value={sacasPorHectare}
+              onChange={setSacasPorHectare}
+              suffix="sc/ha"
+            />
+            <EditableInput
+              label="Área de Cultivo (hectares)"
+              value={areaCultivo}
+              onChange={setAreaCultivo}
+              suffix="ha"
+            />
+          </div>
+          <div className="mt-6 pt-6 border-t border-border/30">
+            <div className="flex items-center justify-between bg-primary/10 rounded-lg p-4 border border-primary/30">
+              <span className="text-sm font-medium text-muted-foreground">Produção Total Estimada</span>
+              <span className="text-2xl font-bold text-primary">{formatNumber(quantidadeSacas, 0)} sacas</span>
+            </div>
+          </div>
+        </section>
+
         {/* KPIs Section - Totais Consolidados */}
         <section>
           <div className="flex items-center justify-between mb-6">
@@ -195,7 +227,7 @@ const Index = () => {
             <KPICard
               title="Valor Médio por Saca"
               value={formatCurrency(valorPorSaca)}
-              subtitle={`${formatNumber(estimativas.quantidadeSacas, 0)} sacas totais`}
+              subtitle={`${formatNumber(quantidadeSacas, 0)} sacas totais`}
               icon={Package}
               trend="neutral"
             />
