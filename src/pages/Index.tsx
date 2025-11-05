@@ -28,6 +28,9 @@ const Index = () => {
   const [sacasPorHectare, setSacasPorHectare] = useState(estimativas.sacasPorHectare);
   const [areaCultivo, setAreaCultivo] = useState(estimativas.areaCultivo);
   
+  // Estado para custos de cultivo
+  const [custos, setCustos] = useState(custosCultivo);
+  
   // Estado para gerenciar cenários salvos
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   
@@ -42,8 +45,8 @@ const Index = () => {
   // Cálculo da quantidade total de sacas baseado nos valores editáveis
   const quantidadeSacas = sacasPorHectare * areaCultivo;
   
-  // Custos da planilha (Custo Operacional por hectare * Área de cultivo)
-  const custosOperacional = custosCultivo.custoOperacional * areaCultivo;
+  // Custos da planilha (Custo Operacional * Área de cultivo)
+  const custosOperacional = custos.custoOperacional * areaCultivo;
 
   // Cálculos dos KPIs conforme fórmula fornecida
   const calculaFaturamento = () => {
@@ -531,7 +534,7 @@ const Index = () => {
 
           {/* Tab: Custos Detalhados */}
           <TabsContent value="custos">
-            <CustosDetalhados />
+            <CustosDetalhados custos={custos} onCustosChange={setCustos} />
           </TabsContent>
 
           {/* Tab: Estimativas */}
