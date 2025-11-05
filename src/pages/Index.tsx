@@ -3,6 +3,9 @@ import { KPICard } from "@/components/KPICard";
 import { EditableInput } from "@/components/EditableInput";
 import { CustosDetalhados } from "@/components/CustosDetalhados";
 import { EstimativasProducao } from "@/components/EstimativasProducao";
+import { ScenarioManager } from "@/components/ScenarioManager";
+import { ScenarioComparison } from "@/components/ScenarioComparison";
+import { Scenario, ScenarioResults } from "@/types/scenario";
 import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +22,9 @@ const Index = () => {
   const [precoSojaChicago, setPrecoSojaChicago] = useState(informacoesHedge.precoChicagoFechamento);
   const [precoSojaFisico, setPrecoSojaFisico] = useState(precoMercadoFisico.precoCIFSantos);
   const [dolarPtax, setDolarPtax] = useState(informacoesHedge.dolarPtax);
+  
+  // Estado para gerenciar cenários salvos
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
   
   // Valores fixos da trava
   const travaNDFSoja = informacoesHedge.ndfSoja;
@@ -61,6 +67,39 @@ const Index = () => {
   const formatNumber = (value: number, decimals: number = 2) => {
     return value.toFixed(decimals);
   };
+
+  // Funções para gerenciar cenários
+  const handleAddScenario = (scenario: Scenario) => {
+    setScenarios([...scenarios, scenario]);
+  };
+
+  const handleDeleteScenario = (id: string) => {
+    setScenarios(scenarios.filter(s => s.id !== id));
+  };
+
+  // Calcular resultados para cada cenário
+  const calculateScenarioResults = (scenario: Scenario): ScenarioResults => {
+    const bushelsParaSacas = quantidadeBushel / 2.204;
+    const valorVendaSojaFisica = scenario.precoSojaFisico * bushelsParaSacas;
+    const ajusteNDFSoja = (travaNDFSoja - scenario.precoSojaChicago) * quantidadeBushel;
+    const ajusteNDFDolar = (travaNDFDolar - scenario.dolarPtax) * quantidadeDolar;
+    const faturamento = valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
+    const lucro = faturamento - custosOperacional;
+    const valorSaca = faturamento / estimativas.quantidadeSacas;
+    const margem = (lucro / faturamento) * 100;
+    const roi = (lucro / custosOperacional) * 100;
+
+    return {
+      scenario,
+      faturamentoTotal: faturamento,
+      lucroTotal: lucro,
+      valorPorSaca: valorSaca,
+      margemLucro: margem,
+      roi: roi,
+    };
+  };
+
+  const scenarioResults: ScenarioResults[] = scenarios.map(calculateScenarioResults);
 
   return (
     <div className="min-h-screen bg-background">
@@ -139,6 +178,8 @@ const Index = () => {
         <Tabs defaultValue="simulacao" className="space-y-6">
           <TabsList className="bg-surface border border-border/50">
             <TabsTrigger value="simulacao">Simulação</TabsTrigger>
+            <TabsTrigger value="cenarios">Cenários</TabsTrigger>
+            <TabsTrigger value="comparacao">Comparação</TabsTrigger>
             <TabsTrigger value="custos">Custos Detalhados</TabsTrigger>
             <TabsTrigger value="estimativas">Estimativas</TabsTrigger>
           </TabsList>
@@ -274,6 +315,25 @@ const Index = () => {
                 </div>
               </div>
             </section>
+          </TabsContent>
+
+          {/* Tab: Cenários */}
+          <TabsContent value="cenarios">
+            <ScenarioManager
+              scenarios={scenarios}
+              onAddScenario={handleAddScenario}
+              onDeleteScenario={handleDeleteScenario}
+              currentValues={{
+                precoSojaChicago,
+                precoSojaFisico,
+                dolarPtax,
+              }}
+            />
+          </TabsContent>
+
+          {/* Tab: Comparação */}
+          <TabsContent value="comparacao">
+            <ScenarioComparison scenarioResults={scenarioResults} />
           </TabsContent>
 
           {/* Tab: Custos Detalhados */}
