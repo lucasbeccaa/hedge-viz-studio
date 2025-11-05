@@ -23,9 +23,10 @@ export const CustosDetalhados = ({
 
     // Recalcular totais
     updatedCustos.totalCustosVariaveis = updatedCustos.operacaoMaquinas + updatedCustos.manutencaoBenfeitorias + updatedCustos.maoObraTemporaria + updatedCustos.sementes + updatedCustos.fertilizantes + updatedCustos.defensivos + updatedCustos.despesasGerais + updatedCustos.transporteExterno + updatedCustos.assistenciaTecnica + updatedCustos.proagroSeguro;
-    updatedCustos.totalCustosFixos = updatedCustos.depreciacaoMaquinas + updatedCustos.depreciacaoBenfeitorias + updatedCustos.sistematizacaoSolo + updatedCustos.seguroCapital + updatedCustos.maoObraPermanente + updatedCustos.remuneracaoCapital + updatedCustos.remuneracaoTerra;
+    updatedCustos.totalCustosFixos = updatedCustos.depreciacaoMaquinas + updatedCustos.depreciacaoBenfeitorias + updatedCustos.sistematizacaoSolo + updatedCustos.seguroCapital + updatedCustos.maoObraPermanente;
+    updatedCustos.totalCustoOportunidade = updatedCustos.remuneracaoCapital + updatedCustos.remuneracaoTerra;
     updatedCustos.custoOperacional = updatedCustos.totalCustosVariaveis;
-    updatedCustos.custoTotal = updatedCustos.totalCustosVariaveis + updatedCustos.totalCustosFixos;
+    updatedCustos.custoTotal = updatedCustos.totalCustosVariaveis + updatedCustos.totalCustosFixos + updatedCustos.totalCustoOportunidade;
     onCustosChange(updatedCustos);
   };
   const EditableValue = ({
@@ -118,6 +119,19 @@ export const CustosDetalhados = ({
               <span className="text-muted-foreground">Mão-de-obra permanente</span>
               <EditableValue value={custos.maoObraPermanente} field="maoObraPermanente" />
             </div>
+            <div className="flex justify-between py-3 border-t-2 border-primary/30 mt-2">
+              <span className="font-semibold text-foreground">Total Custos Fixos</span>
+              <span className="font-bold text-primary text-base">{formatCurrency(custos.totalCustosFixos)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Custo de Oportunidade */}
+        <div>
+          <h3 className="text-sm font-semibold text-primary uppercase tracking-wide mb-3">
+            Custo de Oportunidade
+          </h3>
+          <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center py-2 border-b border-border/20">
               <span className="text-muted-foreground">Remuneração do capital próprio</span>
               <EditableValue value={custos.remuneracaoCapital} field="remuneracaoCapital" />
@@ -127,8 +141,8 @@ export const CustosDetalhados = ({
               <EditableValue value={custos.remuneracaoTerra} field="remuneracaoTerra" />
             </div>
             <div className="flex justify-between py-3 border-t-2 border-primary/30 mt-2">
-              <span className="font-semibold text-foreground">Total Custos Fixos</span>
-              <span className="font-bold text-primary text-base">{formatCurrency(custos.totalCustosFixos)}</span>
+              <span className="font-semibold text-foreground">Total Custo de Oportunidade</span>
+              <span className="font-bold text-primary text-base">{formatCurrency(custos.totalCustoOportunidade)}</span>
             </div>
           </div>
         </div>

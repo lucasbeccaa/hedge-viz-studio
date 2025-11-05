@@ -20,6 +20,7 @@ export interface CustosCultivo {
   remuneracaoCapital: number;
   remuneracaoTerra: number;
   totalCustosFixos: number;
+  totalCustoOportunidade: number;
   custoOperacional: number;
   custoTotal: number;
 }
@@ -69,7 +70,8 @@ export const custosCultivo: CustosCultivo = {
   maoObraPermanente: 254.94,
   remuneracaoCapital: 296.38,
   remuneracaoTerra: 1453.92,
-  totalCustosFixos: 2692.87,
+  totalCustosFixos: 942.57,
+  totalCustoOportunidade: 1750.30,
   custoOperacional: 4120.33,
   custoTotal: 5870.63,
 };
