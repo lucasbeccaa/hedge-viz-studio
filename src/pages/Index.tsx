@@ -6,7 +6,9 @@ import { EstimativasProducao } from "@/components/EstimativasProducao";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { Scenario, ScenarioResults } from "@/types/scenario";
-import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin } from "lucide-react";
+import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin, FileDown } from "lucide-react";
+import { generateEditableTemplate } from "@/utils/excelExport";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -101,6 +103,14 @@ const Index = () => {
 
   const scenarioResults: ScenarioResults[] = scenarios.map(calculateScenarioResults);
 
+  const handleExportExcel = () => {
+    generateEditableTemplate(scenarios, {
+      precoSojaChicago,
+      precoSojaFisico,
+      dolarPtax,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -115,7 +125,15 @@ const Index = () => {
                 Análise e simulação de operações de proteção financeira
               </p>
             </div>
-            <div className="flex gap-4 text-sm">
+            <Button 
+              onClick={handleExportExcel}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar Template Excel
+            </Button>
+          </div>
+          <div className="flex gap-4 text-sm mt-4">
               <div className="bg-surface/50 px-4 py-2 rounded-lg border border-border/30">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
@@ -135,7 +153,6 @@ const Index = () => {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </header>
 
