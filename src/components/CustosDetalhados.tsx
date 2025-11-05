@@ -142,7 +142,7 @@ export const CustosDetalhados = ({
             </div>
             <div className="flex justify-between py-3 border-t-2 border-primary/30 mt-2">
               <span className="font-semibold text-foreground">Total Custo de Oportunidade</span>
-              <span className="font-bold text-primary text-base">{formatCurrency(custos.totalCustoOportunidade)}</span>
+              <span className="font-bold text-primary text-base">{formatCurrency(custos.remuneracaoCapital + custos.remuneracaoTerra)}</span>
             </div>
           </div>
         </div>
