@@ -45,13 +45,14 @@ const Index = () => {
     const bushelsParaSacas = quantidadeBushel / 2.204;
     const valorVendaSojaFisica = precoSojaFisico * bushelsParaSacas;
     
-    // Ajuste NDF Soja
+    // Ajuste NDF Soja (em dólares)
     const ajusteNDFSoja = (travaNDFSoja - precoSojaChicago) * quantidadeBushel;
     
-    // Ajuste NDF Dólar
+    // Ajuste NDF Dólar (em reais)
     const ajusteNDFDolar = (travaNDFDolar - dolarPtax) * quantidadeDolar;
     
-    return valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
+    // Faturamento = Valor de Venda + (Ajuste Soja * Dólar Ptax) + Ajuste Dólar
+    return valorVendaSojaFisica + (ajusteNDFSoja * dolarPtax) + ajusteNDFDolar;
   };
 
   // Cálculos separados: Parcela Protegida vs Parcela Exposta
@@ -102,11 +103,11 @@ const Index = () => {
     const bushelsParaSacas = quantidadeBushel / 2.204;
     const sacasExpostas = estimativas.quantidadeSacas - bushelsParaSacas;
     
-    // Parcela Protegida
+    // Parcela Protegida - usando fórmula correta
     const valorVendaSojaFisica = scenario.precoSojaFisico * bushelsParaSacas;
     const ajusteNDFSoja = (travaNDFSoja - scenario.precoSojaChicago) * quantidadeBushel;
     const ajusteNDFDolar = (travaNDFDolar - scenario.dolarPtax) * quantidadeDolar;
-    const faturamentoProtegido = valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
+    const faturamentoProtegido = valorVendaSojaFisica + (ajusteNDFSoja * scenario.dolarPtax) + ajusteNDFDolar;
     
     // Parcela Exposta
     const faturamentoExpostoSpot = scenario.precoSojaFisico * sacasExpostas;
