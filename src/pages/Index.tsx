@@ -55,8 +55,9 @@ const Index = () => {
   };
 
   const faturamentoTotal = calculaFaturamento();
+  const bushelsParaSacas = quantidadeBushel / 2.204;
   const lucroTotal = faturamentoTotal - custosOperacional;
-  const valorPorSaca = faturamentoTotal / estimativas.quantidadeSacas;
+  const valorPorSaca = faturamentoTotal / bushelsParaSacas; // Usar sacas travadas
   const diferencaTravaCerealista = precoSojaFisico - informacoesHedge.precoRealPorSaca;
 
   const formatCurrency = (value: number) => {
@@ -87,7 +88,7 @@ const Index = () => {
     const ajusteNDFDolar = (travaNDFDolar - scenario.dolarPtax) * quantidadeDolar;
     const faturamento = valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
     const lucro = faturamento - custosOperacional;
-    const valorSaca = faturamento / estimativas.quantidadeSacas;
+    const valorSaca = faturamento / bushelsParaSacas; // Usar sacas travadas
     const margem = (lucro / faturamento) * 100;
     const roi = (lucro / custosOperacional) * 100;
 
