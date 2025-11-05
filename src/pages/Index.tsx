@@ -6,7 +6,7 @@ import { EstimativasProducao } from "@/components/EstimativasProducao";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { Scenario, ScenarioResults } from "@/types/scenario";
-import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin, FileDown } from "lucide-react";
+import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin, FileDown, Shield, AlertTriangle, BarChart3 } from "lucide-react";
 import { generateEditableTemplate } from "@/utils/excelExport";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -54,11 +54,28 @@ const Index = () => {
     return valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
   };
 
-  const faturamentoTotal = calculaFaturamento();
-  const bushelsParaSacas = quantidadeBushel / 2.204;
-  const lucroTotal = faturamentoTotal - custosOperacional;
-  const valorPorSaca = faturamentoTotal / bushelsParaSacas; // Usar sacas travadas
-  const diferencaTravaCerealista = precoSojaFisico - informacoesHedge.precoRealPorSaca;
+  // Cálculos separados: Parcela Protegida vs Parcela Exposta
+  const bushelsParaSacas = quantidadeBushel / 2.204; // Sacas protegidas pelo hedge
+  const sacasExpostas = estimativas.quantidadeSacas - bushelsParaSacas; // Sacas sem proteção
+  const percentualCobertura = (bushelsParaSacas / estimativas.quantidadeSacas) * 100;
+  
+  // Parcela Protegida (Hedge)
+  const faturamentoProtegido = calculaFaturamento();
+  const valorPorSacaProtegida = faturamentoProtegido / bushelsParaSacas;
+  const custoOperacionalProtegido = (bushelsParaSacas / estimativas.quantidadeSacas) * custosOperacional;
+  const lucroProtegido = faturamentoProtegido - custoOperacionalProtegido;
+  
+  // Parcela Exposta (Spot)
+  const faturamentoExpostoSpot = precoSojaFisico * sacasExpostas;
+  const valorPorSacaSpot = precoSojaFisico;
+  const custoOperacionalExposto = (sacasExpostas / estimativas.quantidadeSacas) * custosOperacional;
+  const lucroExpostoSpot = faturamentoExpostoSpot - custoOperacionalExposto;
+  
+  // Totais Consolidados
+  const faturamentoTotal = faturamentoProtegido + faturamentoExpostoSpot;
+  const lucroTotal = lucroProtegido + lucroExpostoSpot;
+  const valorPorSaca = faturamentoTotal / estimativas.quantidadeSacas;
+  const diferencaTravaCerealista = valorPorSacaProtegida - informacoesHedge.precoRealPorSaca;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -83,12 +100,21 @@ const Index = () => {
   // Calcular resultados para cada cenário
   const calculateScenarioResults = (scenario: Scenario): ScenarioResults => {
     const bushelsParaSacas = quantidadeBushel / 2.204;
+    const sacasExpostas = estimativas.quantidadeSacas - bushelsParaSacas;
+    
+    // Parcela Protegida
     const valorVendaSojaFisica = scenario.precoSojaFisico * bushelsParaSacas;
     const ajusteNDFSoja = (travaNDFSoja - scenario.precoSojaChicago) * quantidadeBushel;
     const ajusteNDFDolar = (travaNDFDolar - scenario.dolarPtax) * quantidadeDolar;
-    const faturamento = valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
+    const faturamentoProtegido = valorVendaSojaFisica - (ajusteNDFSoja * ajusteNDFDolar);
+    
+    // Parcela Exposta
+    const faturamentoExpostoSpot = scenario.precoSojaFisico * sacasExpostas;
+    
+    // Totais
+    const faturamento = faturamentoProtegido + faturamentoExpostoSpot;
     const lucro = faturamento - custosOperacional;
-    const valorSaca = faturamento / bushelsParaSacas; // Usar sacas travadas
+    const valorSaca = faturamento / estimativas.quantidadeSacas;
     const margem = (lucro / faturamento) * 100;
     const roi = (lucro / custosOperacional) * 100;
 
@@ -158,9 +184,15 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-6 py-8 space-y-8">
-        {/* KPIs Section */}
+        {/* KPIs Section - Totais Consolidados */}
         <section>
-          <h2 className="text-xl font-semibold text-foreground mb-6">Indicadores Principais</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-foreground">Indicadores Consolidados</h2>
+            <div className="bg-primary/10 px-4 py-2 rounded-lg border border-primary/30">
+              <p className="text-sm text-muted-foreground">Cobertura do Hedge</p>
+              <p className="text-lg font-bold text-primary">{percentualCobertura.toFixed(1)}%</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <KPICard
               title="Faturamento Total"
@@ -176,9 +208,9 @@ const Index = () => {
               trend={lucroTotal > 0 ? "up" : "down"}
             />
             <KPICard
-              title="Valor por Saca"
+              title="Valor Médio por Saca"
               value={formatCurrency(valorPorSaca)}
-              subtitle={`${formatNumber(estimativas.quantidadeSacas, 0)} sacas`}
+              subtitle={`${formatNumber(estimativas.quantidadeSacas, 0)} sacas totais`}
               icon={Package}
               trend="neutral"
             />
@@ -190,6 +222,132 @@ const Index = () => {
               trend={diferencaTravaCerealista > 0 ? "up" : "down"}
             />
           </div>
+        </section>
+
+        {/* KPIs Section - Parcela Protegida vs Exposta */}
+        <section>
+          <h2 className="text-xl font-semibold text-foreground mb-6">Análise Segmentada</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Parcela Protegida */}
+            <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-green-500/20 rounded-lg">
+                      <Shield className="h-6 w-6 text-green-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Parcela Protegida (Hedge)</h3>
+                      <p className="text-sm text-muted-foreground">{formatNumber(bushelsParaSacas, 0)} sacas</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3 pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Faturamento</span>
+                    <span className="text-lg font-bold text-foreground">{formatCurrency(faturamentoProtegido)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Lucro</span>
+                    <span className={`text-lg font-bold ${lucroProtegido > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {formatCurrency(lucroProtegido)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Valor por Saca</span>
+                    <span className="text-lg font-bold text-foreground">{formatCurrency(valorPorSacaProtegida)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-green-500/20">
+                    <span className="text-sm text-muted-foreground">Margem de Lucro</span>
+                    <span className="text-base font-semibold text-green-500">
+                      {((lucroProtegido / faturamentoProtegido) * 100).toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Parcela Exposta */}
+            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/30">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-orange-500/20 rounded-lg">
+                      <AlertTriangle className="h-6 w-6 text-orange-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Parcela Exposta (Spot)</h3>
+                      <p className="text-sm text-muted-foreground">{formatNumber(sacasExpostas, 0)} sacas</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3 pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Faturamento</span>
+                    <span className="text-lg font-bold text-foreground">{formatCurrency(faturamentoExpostoSpot)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Lucro</span>
+                    <span className={`text-lg font-bold ${lucroExpostoSpot > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {formatCurrency(lucroExpostoSpot)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Valor por Saca</span>
+                    <span className="text-lg font-bold text-foreground">{formatCurrency(valorPorSacaSpot)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-orange-500/20">
+                    <span className="text-sm text-muted-foreground">Margem de Lucro</span>
+                    <span className="text-base font-semibold text-orange-500">
+                      {((lucroExpostoSpot / faturamentoExpostoSpot) * 100).toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Comparação Direta */}
+          <Card className="mt-6 bg-gradient-card border-border/50">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-primary/20 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Comparação de Performance</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-2">Diferença de Valor por Saca</p>
+                  <p className={`text-2xl font-bold ${(valorPorSacaProtegida - valorPorSacaSpot) > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {formatCurrency(valorPorSacaProtegida - valorPorSacaSpot)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(valorPorSacaProtegida - valorPorSacaSpot) > 0 ? 'Hedge melhor que Spot' : 'Spot melhor que Hedge'}
+                  </p>
+                </div>
+                
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-2">Diferença de Margem</p>
+                  <p className={`text-2xl font-bold ${((lucroProtegido/faturamentoProtegido) - (lucroExpostoSpot/faturamentoExpostoSpot)) > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {(((lucroProtegido/faturamentoProtegido) - (lucroExpostoSpot/faturamentoExpostoSpot)) * 100).toFixed(2)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Protegida vs Exposta</p>
+                </div>
+                
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-2">Impacto do Hedge no Total</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {formatCurrency((valorPorSacaProtegida - valorPorSacaSpot) * bushelsParaSacas)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Ganho/Perda vs Spot puro</p>
+                </div>
+              </div>
+            </div>
+          </Card>
         </section>
 
         {/* Tabs para diferentes visualizações */}
