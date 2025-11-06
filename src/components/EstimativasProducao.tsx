@@ -2,7 +2,11 @@ import { Card } from "@/components/ui/card";
 import { estimativas } from "@/data/hedgeData";
 import { Wheat, MapPin, Package2, Truck } from "lucide-react";
 
-export const EstimativasProducao = () => {
+interface EstimativasProducaoProps {
+  custoFrete60Ton: number;
+}
+
+export const EstimativasProducao = ({ custoFrete60Ton }: EstimativasProducaoProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -36,7 +40,7 @@ export const EstimativasProducao = () => {
     {
       icon: Truck,
       label: "Frete Itaí → Santos",
-      value: formatCurrency(estimativas.freteItaiSantos),
+      value: formatCurrency(custoFrete60Ton),
       color: "text-orange-400",
     },
   ];

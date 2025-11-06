@@ -570,7 +570,7 @@ const Index = () => {
 
           {/* Tab: Estimativas */}
           <TabsContent value="estimativas">
-            <EstimativasProducao />
+            <EstimativasProducao custoFrete60Ton={custoFrete60Ton} />
           </TabsContent>
         </Tabs>
       </main>
