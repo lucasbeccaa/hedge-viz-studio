@@ -12,49 +12,42 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  informacoesHedge, 
-  precoMercadoFisico, 
-  estimativas, 
-  custosCultivo,
-  getDataTravaFormatada 
-} from "@/data/hedgeData";
-
+import { informacoesHedge, precoMercadoFisico, estimativas, custosCultivo, getDataTravaFormatada } from "@/data/hedgeData";
 const Index = () => {
   // Estados para valores editáveis - inicializados com dados reais
   const [precoSojaChicago, setPrecoSojaChicago] = useState(informacoesHedge.precoChicagoFechamento);
   const [dolarPtax, setDolarPtax] = useState(informacoesHedge.dolarPtax);
-  
+
   // Estados para análise FOB vs CIF
   const [tipoEntrega, setTipoEntrega] = useState<'FOB' | 'CIF'>('CIF');
   const [precoFOBItai, setPrecoFOBItai] = useState(precoMercadoFisico.precoFOBItai);
   const [precoCIFSantos, setPrecoCIFSantos] = useState(precoMercadoFisico.precoCIFSantos);
   const [custoFrete60Ton, setCustoFrete60Ton] = useState(7500);
-  
+
   // Preço soja físico baseado no tipo de entrega selecionado
   const precoSojaFisico = tipoEntrega === 'FOB' ? precoFOBItai : precoCIFSantos;
-  
+
   // Estados para estimativas de produção
   const [sacasPorHectare, setSacasPorHectare] = useState(estimativas.sacasPorHectare);
   const [areaCultivo, setAreaCultivo] = useState(estimativas.areaCultivo);
-  
+
   // Estado para custos de cultivo
   const [custos, setCustos] = useState(custosCultivo);
-  
+
   // Estado para gerenciar cenários salvos
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
-  
+
   // Valores fixos da trava
   const travaNDFSoja = informacoesHedge.ndfSoja;
   const travaNDFDolar = informacoesHedge.ndfDolar;
   const quantidadeBushel = informacoesHedge.quantidadeBushel;
-  
+
   // Cálculo da quantidade de dólares baseado no valor da operação
   const quantidadeDolar = quantidadeBushel * travaNDFSoja;
-  
+
   // Cálculo da quantidade total de sacas baseado nos valores editáveis
   const quantidadeSacas = sacasPorHectare * areaCultivo;
-  
+
   // Custos da planilha (Custo Operacional * Área de cultivo)
   const custosOperacional = custos.custoOperacional * areaCultivo;
 
@@ -63,40 +56,40 @@ const Index = () => {
     // Conversão: bushel para sacas (1 bushel = 27.216 kg, 1 saca = 60 kg)
     const bushelsParaSacas = quantidadeBushel / 2.204;
     const valorVendaSojaFisica = precoSojaFisico * bushelsParaSacas;
-    
+
     // Ajuste NDF Soja (em dólares)
     const ajusteNDFSoja = (travaNDFSoja - precoSojaChicago) * quantidadeBushel;
-    
+
     // Ajuste NDF Dólar (em reais)
     const ajusteNDFDolar = (travaNDFDolar - dolarPtax) * quantidadeDolar;
-    
+
     // Faturamento = Valor de Venda + (Ajuste Soja * Dólar Ptax) + Ajuste Dólar
-    return valorVendaSojaFisica + (ajusteNDFSoja * dolarPtax) + ajusteNDFDolar;
+    return valorVendaSojaFisica + ajusteNDFSoja * dolarPtax + ajusteNDFDolar;
   };
 
   // Cálculos separados: Parcela Protegida vs Parcela Exposta
   const bushelsParaSacas = quantidadeBushel / 2.204; // Sacas protegidas pelo hedge
   const sacasExpostas = quantidadeSacas - bushelsParaSacas; // Sacas sem proteção
-  const percentualCobertura = (bushelsParaSacas / quantidadeSacas) * 100;
-  
+  const percentualCobertura = bushelsParaSacas / quantidadeSacas * 100;
+
   // Parcela Protegida (Hedge)
   const faturamentoProtegido = calculaFaturamento();
   const valorPorSacaProtegida = faturamentoProtegido / bushelsParaSacas;
-  const custoOperacionalProtegido = (bushelsParaSacas / quantidadeSacas) * custosOperacional;
+  const custoOperacionalProtegido = bushelsParaSacas / quantidadeSacas * custosOperacional;
   const lucroProtegido = faturamentoProtegido - custoOperacionalProtegido;
-  
+
   // Parcela Exposta (Spot)
   const faturamentoExpostoSpot = precoSojaFisico * sacasExpostas;
   const valorPorSacaSpot = precoSojaFisico;
-  const custoOperacionalExposto = (sacasExpostas / quantidadeSacas) * custosOperacional;
+  const custoOperacionalExposto = sacasExpostas / quantidadeSacas * custosOperacional;
   const lucroExpostoSpot = faturamentoExpostoSpot - custoOperacionalExposto;
-  
+
   // Totais Consolidados
   const faturamentoTotal = faturamentoProtegido + faturamentoExpostoSpot;
   const lucroTotal = lucroProtegido + lucroExpostoSpot;
   const valorPorSaca = faturamentoTotal / quantidadeSacas;
   const diferencaTravaCerealista = valorPorSacaProtegida - informacoesHedge.precoRealPorSaca;
-  
+
   // Análise Comparativa FOB vs CIF
   const custoFretePorSaca = custoFrete60Ton / 1000;
   const precoCIFAjustado = precoCIFSantos - custoFretePorSaca;
@@ -106,14 +99,12 @@ const Index = () => {
   const vantagemPorSaca = Math.abs(precoFOBEfetivo - precoCIFEfetivo);
   const economiaTotalProtegida = vantagemPorSaca * bushelsParaSacas;
   const economiaTotalCompleta = vantagemPorSaca * quantidadeSacas;
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'BRL'
     }).format(value);
   };
-
   const formatNumber = (value: number, decimals: number = 2) => {
     return value.toFixed(decimals);
   };
@@ -122,7 +113,6 @@ const Index = () => {
   const handleAddScenario = (scenario: Scenario) => {
     setScenarios([...scenarios, scenario]);
   };
-
   const handleDeleteScenario = (id: string) => {
     setScenarios(scenarios.filter(s => s.id !== id));
   };
@@ -131,40 +121,36 @@ const Index = () => {
   const calculateScenarioResults = (scenario: Scenario): ScenarioResults => {
     const bushelsParaSacas = quantidadeBushel / 2.204;
     const sacasExpostas = quantidadeSacas - bushelsParaSacas;
-    
+
     // Determinar preço físico baseado no tipo de entrega do cenário
     const precoFisicoScenario = scenario.tipoEntrega === 'FOB' ? scenario.precoSojaFisico : scenario.precoSojaFisico;
-    
+
     // Parcela Protegida - usando fórmula correta
     const valorVendaSojaFisica = precoFisicoScenario * bushelsParaSacas;
     const ajusteNDFSoja = (travaNDFSoja - scenario.precoSojaChicago) * quantidadeBushel;
     const ajusteNDFDolar = (travaNDFDolar - scenario.dolarPtax) * quantidadeDolar;
-    const faturamentoProtegido = valorVendaSojaFisica + (ajusteNDFSoja * scenario.dolarPtax) + ajusteNDFDolar;
-    
+    const faturamentoProtegido = valorVendaSojaFisica + ajusteNDFSoja * scenario.dolarPtax + ajusteNDFDolar;
+
     // Parcela Exposta
     const faturamentoExpostoSpot = precoFisicoScenario * sacasExpostas;
-    
+
     // Totais
     const faturamento = faturamentoProtegido + faturamentoExpostoSpot;
     const lucro = faturamento - custosOperacional;
     const valorSaca = faturamento / quantidadeSacas;
-    const margem = (lucro / faturamento) * 100;
-    const roi = (lucro / custosOperacional) * 100;
-
+    const margem = lucro / faturamento * 100;
+    const roi = lucro / custosOperacional * 100;
     return {
       scenario,
       faturamentoTotal: faturamento,
       lucroTotal: lucro,
       valorPorSaca: valorSaca,
       margemLucro: margem,
-      roi: roi,
+      roi: roi
     };
   };
-
   const scenarioResults: ScenarioResults[] = scenarios.map(calculateScenarioResults);
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-6 py-6">
@@ -206,18 +192,8 @@ const Index = () => {
         <section className="bg-gradient-card border border-border/50 rounded-lg shadow-card p-6">
           <h2 className="text-xl font-semibold text-foreground mb-6">Estimativas de Produção</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <EditableInput
-              label="Produtividade (sacas/ha)"
-              value={sacasPorHectare}
-              onChange={setSacasPorHectare}
-              suffix="sc/ha"
-            />
-            <EditableInput
-              label="Área de Cultivo (hectares)"
-              value={areaCultivo}
-              onChange={setAreaCultivo}
-              suffix="ha"
-            />
+            <EditableInput label="Produtividade (sacas/ha)" value={sacasPorHectare} onChange={setSacasPorHectare} suffix="sc/ha" />
+            <EditableInput label="Área de Cultivo (hectares)" value={areaCultivo} onChange={setAreaCultivo} suffix="ha" />
           </div>
           <div className="mt-6 pt-6 border-t border-border/30">
             <div className="flex items-center justify-between bg-primary/10 rounded-lg p-4 border border-primary/30">
@@ -237,33 +213,10 @@ const Index = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <KPICard
-              title="Faturamento Total"
-              value={formatCurrency(faturamentoTotal)}
-              icon={DollarSign}
-              trend="up"
-            />
-            <KPICard
-              title="Lucro Total"
-              value={formatCurrency(lucroTotal)}
-              subtitle={`Margem: ${((lucroTotal / faturamentoTotal) * 100).toFixed(1)}%`}
-              icon={TrendingUp}
-              trend={lucroTotal > 0 ? "up" : "down"}
-            />
-            <KPICard
-              title="Valor Médio por Saca"
-              value={formatCurrency(valorPorSaca)}
-              subtitle={`${formatNumber(quantidadeSacas, 0)} sacas totais`}
-              icon={Package}
-              trend="neutral"
-            />
-            <KPICard
-              title="Diferença sobre Trava"
-              value={formatCurrency(diferencaTravaCerealista)}
-              subtitle={diferencaTravaCerealista > 0 ? "Acima da trava" : "Abaixo da trava"}
-              icon={ArrowUpDown}
-              trend={diferencaTravaCerealista > 0 ? "up" : "down"}
-            />
+            <KPICard title="Faturamento Total" value={formatCurrency(faturamentoTotal)} icon={DollarSign} trend="up" />
+            <KPICard title="Lucro Total" value={formatCurrency(lucroTotal)} subtitle={`Margem: ${(lucroTotal / faturamentoTotal * 100).toFixed(1)}%`} icon={TrendingUp} trend={lucroTotal > 0 ? "up" : "down"} />
+            <KPICard title="Valor Médio por Saca" value={formatCurrency(valorPorSaca)} subtitle={`${formatNumber(quantidadeSacas, 0)} sacas totais`} icon={Package} trend="neutral" />
+            <KPICard title="Diferença sobre Trava" value={formatCurrency(diferencaTravaCerealista)} subtitle={diferencaTravaCerealista > 0 ? "Acima da trava" : "Abaixo da trava"} icon={ArrowUpDown} trend={diferencaTravaCerealista > 0 ? "up" : "down"} />
           </div>
         </section>
 
@@ -304,7 +257,7 @@ const Index = () => {
                   <div className="flex justify-between items-center pt-2 border-t border-green-500/20">
                     <span className="text-sm text-muted-foreground">Margem de Lucro</span>
                     <span className="text-base font-semibold text-green-500">
-                      {((lucroProtegido / faturamentoProtegido) * 100).toFixed(2)}%
+                      {(lucroProtegido / faturamentoProtegido * 100).toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -344,7 +297,7 @@ const Index = () => {
                   <div className="flex justify-between items-center pt-2 border-t border-orange-500/20">
                     <span className="text-sm text-muted-foreground">Margem de Lucro</span>
                     <span className="text-base font-semibold text-orange-500">
-                      {((lucroExpostoSpot / faturamentoExpostoSpot) * 100).toFixed(2)}%
+                      {(lucroExpostoSpot / faturamentoExpostoSpot * 100).toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -365,18 +318,18 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
                   <p className="text-xs text-muted-foreground mb-2">Diferença de Valor por Saca</p>
-                  <p className={`text-2xl font-bold ${(valorPorSacaProtegida - valorPorSacaSpot) > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <p className={`text-2xl font-bold ${valorPorSacaProtegida - valorPorSacaSpot > 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {formatCurrency(valorPorSacaProtegida - valorPorSacaSpot)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {(valorPorSacaProtegida - valorPorSacaSpot) > 0 ? 'Hedge melhor que Spot' : 'Spot melhor que Hedge'}
+                    {valorPorSacaProtegida - valorPorSacaSpot > 0 ? 'Hedge melhor que Spot' : 'Spot melhor que Hedge'}
                   </p>
                 </div>
                 
                 <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
                   <p className="text-xs text-muted-foreground mb-2">Diferença de Margem</p>
-                  <p className={`text-2xl font-bold ${((lucroProtegido/faturamentoProtegido) - (lucroExpostoSpot/faturamentoExpostoSpot)) > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {(((lucroProtegido/faturamentoProtegido) - (lucroExpostoSpot/faturamentoExpostoSpot)) * 100).toFixed(2)}%
+                  <p className={`text-2xl font-bold ${lucroProtegido / faturamentoProtegido - lucroExpostoSpot / faturamentoExpostoSpot > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {((lucroProtegido / faturamentoProtegido - lucroExpostoSpot / faturamentoExpostoSpot) * 100).toFixed(2)}%
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">Protegida vs Exposta</p>
                 </div>
@@ -414,18 +367,8 @@ const Index = () => {
                   <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">
                     Valores Editáveis
                   </h3>
-                  <EditableInput
-                    label="Preço Soja Chicago (vencimento)"
-                    value={precoSojaChicago}
-                    onChange={setPrecoSojaChicago}
-                    prefix="$"
-                  />
-                  <EditableInput
-                    label="Dólar Ptax (vencimento)"
-                    value={dolarPtax}
-                    onChange={setDolarPtax}
-                    prefix="R$"
-                  />
+                  <EditableInput label="Preço Soja Chicago (vencimento)" value={precoSojaChicago} onChange={setPrecoSojaChicago} prefix="$" />
+                  <EditableInput label="Dólar Ptax (vencimento)" value={dolarPtax} onChange={setDolarPtax} prefix="R$" />
                 </div>
 
                 <div className="space-y-4">
@@ -466,26 +409,11 @@ const Index = () => {
                       </Select>
                     </div>
                     
-                    <EditableInput
-                      label="Preço FOB Itaí"
-                      value={precoFOBItai}
-                      onChange={setPrecoFOBItai}
-                      prefix="R$"
-                    />
+                    <EditableInput label="Preço FOB Itaí" value={precoFOBItai} onChange={setPrecoFOBItai} prefix="R$" />
                     
-                    <EditableInput
-                      label="Preço CIF Santos"
-                      value={precoCIFSantos}
-                      onChange={setPrecoCIFSantos}
-                      prefix="R$"
-                    />
+                    <EditableInput label="Preço CIF Santos" value={precoCIFSantos} onChange={setPrecoCIFSantos} prefix="R$" />
                     
-                    <EditableInput
-                      label="Custo Frete 60 Toneladas"
-                      value={custoFrete60Ton}
-                      onChange={setCustoFrete60Ton}
-                      prefix="R$"
-                    />
+                    <EditableInput label="Custo Frete 60 Toneladas" value={custoFrete60Ton} onChange={setCustoFrete60Ton} prefix="R$" />
                     
                     <div className="bg-surface/30 rounded-lg p-3 border border-border/20">
                       <p className="text-xs text-muted-foreground mb-1">Preço R$/Saca (Trava)</p>
@@ -561,7 +489,7 @@ const Index = () => {
 
             {/* Resumo da Operação */}
             <section className="bg-gradient-card border border-primary/20 rounded-lg shadow-elevated p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Resumo da Operação</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Resumo da Operação de Hedge</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                 <div className="space-y-2">
                   <div className="flex justify-between py-2 border-b border-border/30">
@@ -605,13 +533,13 @@ const Index = () => {
                   <div className="flex justify-between py-2 border-b border-border/30">
                     <span className="text-muted-foreground">Margem de Lucro:</span>
                     <span className={`font-semibold ${lucroTotal > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {((lucroTotal / faturamentoTotal) * 100).toFixed(2)}%
+                      {(lucroTotal / faturamentoTotal * 100).toFixed(2)}%
                     </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-border/30">
                     <span className="text-muted-foreground">ROI sobre Custos:</span>
                     <span className="font-semibold text-primary">
-                      {((lucroTotal / custosOperacional) * 100).toFixed(2)}%
+                      {(lucroTotal / custosOperacional * 100).toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -621,18 +549,13 @@ const Index = () => {
 
           {/* Tab: Cenários */}
           <TabsContent value="cenarios">
-            <ScenarioManager
-              scenarios={scenarios}
-              onAddScenario={handleAddScenario}
-              onDeleteScenario={handleDeleteScenario}
-              currentValues={{
-                precoSojaChicago,
-                precoSojaFisico,
-                dolarPtax,
-                tipoEntrega,
-                custoFrete60Ton,
-              }}
-            />
+            <ScenarioManager scenarios={scenarios} onAddScenario={handleAddScenario} onDeleteScenario={handleDeleteScenario} currentValues={{
+            precoSojaChicago,
+            precoSojaFisico,
+            dolarPtax,
+            tipoEntrega,
+            custoFrete60Ton
+          }} />
           </TabsContent>
 
           {/* Tab: Comparação */}
@@ -651,8 +574,6 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
