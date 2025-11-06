@@ -6,10 +6,12 @@ import { EstimativasProducao } from "@/components/EstimativasProducao";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { Scenario, ScenarioResults } from "@/types/scenario";
-import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin, Shield, AlertTriangle, BarChart3 } from "lucide-react";
+import { DollarSign, TrendingUp, Package, ArrowUpDown, Calendar, MapPin, Shield, AlertTriangle, BarChart3, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { 
   informacoesHedge, 
   precoMercadoFisico, 
@@ -21,8 +23,16 @@ import {
 const Index = () => {
   // Estados para valores editáveis - inicializados com dados reais
   const [precoSojaChicago, setPrecoSojaChicago] = useState(informacoesHedge.precoChicagoFechamento);
-  const [precoSojaFisico, setPrecoSojaFisico] = useState(precoMercadoFisico.precoCIFSantos);
   const [dolarPtax, setDolarPtax] = useState(informacoesHedge.dolarPtax);
+  
+  // Estados para análise FOB vs CIF
+  const [tipoEntrega, setTipoEntrega] = useState<'FOB' | 'CIF'>('CIF');
+  const [precoFOBItai, setPrecoFOBItai] = useState(precoMercadoFisico.precoFOBItai);
+  const [precoCIFSantos, setPrecoCIFSantos] = useState(precoMercadoFisico.precoCIFSantos);
+  const [custoFrete60Ton, setCustoFrete60Ton] = useState(7500);
+  
+  // Preço soja físico baseado no tipo de entrega selecionado
+  const precoSojaFisico = tipoEntrega === 'FOB' ? precoFOBItai : precoCIFSantos;
   
   // Estados para estimativas de produção
   const [sacasPorHectare, setSacasPorHectare] = useState(estimativas.sacasPorHectare);
@@ -86,6 +96,16 @@ const Index = () => {
   const lucroTotal = lucroProtegido + lucroExpostoSpot;
   const valorPorSaca = faturamentoTotal / quantidadeSacas;
   const diferencaTravaCerealista = valorPorSacaProtegida - informacoesHedge.precoRealPorSaca;
+  
+  // Análise Comparativa FOB vs CIF
+  const custoFretePorSaca = custoFrete60Ton / 1000;
+  const precoCIFAjustado = precoCIFSantos - custoFretePorSaca;
+  const precoFOBEfetivo = precoFOBItai;
+  const precoCIFEfetivo = precoCIFAjustado;
+  const opcaoMaisVantajosa = precoFOBEfetivo > precoCIFEfetivo ? 'FOB' : 'CIF';
+  const vantagemPorSaca = Math.abs(precoFOBEfetivo - precoCIFEfetivo);
+  const economiaTotalProtegida = vantagemPorSaca * bushelsParaSacas;
+  const economiaTotalCompleta = vantagemPorSaca * quantidadeSacas;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -112,14 +132,17 @@ const Index = () => {
     const bushelsParaSacas = quantidadeBushel / 2.204;
     const sacasExpostas = quantidadeSacas - bushelsParaSacas;
     
+    // Determinar preço físico baseado no tipo de entrega do cenário
+    const precoFisicoScenario = scenario.tipoEntrega === 'FOB' ? scenario.precoSojaFisico : scenario.precoSojaFisico;
+    
     // Parcela Protegida - usando fórmula correta
-    const valorVendaSojaFisica = scenario.precoSojaFisico * bushelsParaSacas;
+    const valorVendaSojaFisica = precoFisicoScenario * bushelsParaSacas;
     const ajusteNDFSoja = (travaNDFSoja - scenario.precoSojaChicago) * quantidadeBushel;
     const ajusteNDFDolar = (travaNDFDolar - scenario.dolarPtax) * quantidadeDolar;
     const faturamentoProtegido = valorVendaSojaFisica + (ajusteNDFSoja * scenario.dolarPtax) + ajusteNDFDolar;
     
     // Parcela Exposta
-    const faturamentoExpostoSpot = scenario.precoSojaFisico * sacasExpostas;
+    const faturamentoExpostoSpot = precoFisicoScenario * sacasExpostas;
     
     // Totais
     const faturamento = faturamentoProtegido + faturamentoExpostoSpot;
@@ -398,12 +421,6 @@ const Index = () => {
                     prefix="$"
                   />
                   <EditableInput
-                    label="Preço Soja Físico CIF/Santos"
-                    value={precoSojaFisico}
-                    onChange={setPrecoSojaFisico}
-                    prefix="R$"
-                  />
-                  <EditableInput
                     label="Dólar Ptax (vencimento)"
                     value={dolarPtax}
                     onChange={setDolarPtax}
@@ -436,18 +453,107 @@ const Index = () => {
                     Preços de Referência
                   </h3>
                   <div className="space-y-3">
-                    <div className="bg-surface/30 rounded-lg p-3 border border-border/20">
-                      <p className="text-xs text-muted-foreground mb-1">Preço FOB Itaí</p>
-                      <p className="text-lg font-bold text-foreground">{formatCurrency(precoMercadoFisico.precoFOBItai)}</p>
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground font-medium">Tipo de Entrega</label>
+                      <Select value={tipoEntrega} onValueChange={(value: 'FOB' | 'CIF') => setTipoEntrega(value)}>
+                        <SelectTrigger className="bg-surface border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface border-border z-50">
+                          <SelectItem value="FOB">FOB/Itaí</SelectItem>
+                          <SelectItem value="CIF">CIF/Santos</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="bg-surface/30 rounded-lg p-3 border border-border/20">
-                      <p className="text-xs text-muted-foreground mb-1">Preço CIF Santos</p>
-                      <p className="text-lg font-bold text-foreground">{formatCurrency(precoMercadoFisico.precoCIFSantos)}</p>
-                    </div>
+                    
+                    <EditableInput
+                      label="Preço FOB Itaí"
+                      value={precoFOBItai}
+                      onChange={setPrecoFOBItai}
+                      prefix="R$"
+                    />
+                    
+                    <EditableInput
+                      label="Preço CIF Santos"
+                      value={precoCIFSantos}
+                      onChange={setPrecoCIFSantos}
+                      prefix="R$"
+                    />
+                    
+                    <EditableInput
+                      label="Custo Frete 60 Toneladas"
+                      value={custoFrete60Ton}
+                      onChange={setCustoFrete60Ton}
+                      prefix="R$"
+                    />
+                    
                     <div className="bg-surface/30 rounded-lg p-3 border border-border/20">
                       <p className="text-xs text-muted-foreground mb-1">Preço R$/Saca (Trava)</p>
                       <p className="text-lg font-bold text-primary">{formatCurrency(informacoesHedge.precoRealPorSaca)}</p>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Análise Comparativa de Entrega */}
+            <section className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/30 rounded-lg shadow-card p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-blue-500/20 rounded-lg">
+                  <Truck className="h-6 w-6 text-blue-500" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">Análise Comparativa de Entrega</h2>
+                  <p className="text-sm text-muted-foreground">Comparação FOB/Itaí vs CIF/Santos</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-1">FOB Efetivo</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(precoFOBEfetivo)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">por saca</p>
+                </div>
+                
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-1">CIF Efetivo</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(precoCIFEfetivo)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">CIF - frete/saca</p>
+                </div>
+                
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-1">Custo Frete por Saca</p>
+                  <p className="text-xl font-bold text-orange-500">{formatCurrency(custoFretePorSaca)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">60 ton / 1000 sacas</p>
+                </div>
+                
+                <div className="bg-surface/30 rounded-lg p-4 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-1">Vantagem por Saca</p>
+                  <p className="text-xl font-bold text-green-500">{formatCurrency(vantagemPorSaca)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">diferença</p>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg p-6 border border-primary/30">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Opção Mais Vantajosa</p>
+                    <div className="flex items-center gap-3">
+                      <Badge className={`text-lg px-4 py-2 ${opcaoMaisVantajosa === 'FOB' ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}`}>
+                        {opcaoMaisVantajosa === 'FOB' ? 'FOB/Itaí' : 'CIF/Santos'}
+                      </Badge>
+                      <span className="text-2xl font-bold text-primary">
+                        + {formatCurrency(vantagemPorSaca)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground mb-1">Economia Total (Produção Completa)</p>
+                    <p className="text-3xl font-bold text-primary">{formatCurrency(economiaTotalCompleta)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Baseado em {formatNumber(quantidadeSacas, 0)} sacas totais
+                    </p>
                   </div>
                 </div>
               </div>
@@ -523,6 +629,8 @@ const Index = () => {
                 precoSojaChicago,
                 precoSojaFisico,
                 dolarPtax,
+                tipoEntrega,
+                custoFrete60Ton,
               }}
             />
           </TabsContent>

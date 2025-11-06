@@ -5,6 +5,8 @@ export interface Scenario {
   precoSojaChicago: number;
   precoSojaFisico: number;
   dolarPtax: number;
+  tipoEntrega: 'FOB' | 'CIF';
+  custoFrete60Ton: number;
   dataCriacao: Date;
 }
 

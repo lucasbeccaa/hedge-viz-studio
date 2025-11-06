@@ -22,6 +22,8 @@ interface ScenarioManagerProps {
     precoSojaChicago: number;
     precoSojaFisico: number;
     dolarPtax: number;
+    tipoEntrega: 'FOB' | 'CIF';
+    custoFrete60Ton: number;
   };
 }
 
@@ -36,6 +38,8 @@ export const ScenarioManager = ({
   const [precoSojaChicago, setPrecoSojaChicago] = useState(currentValues.precoSojaChicago);
   const [precoSojaFisico, setPrecoSojaFisico] = useState(currentValues.precoSojaFisico);
   const [dolarPtax, setDolarPtax] = useState(currentValues.dolarPtax);
+  const [tipoEntrega, setTipoEntrega] = useState<'FOB' | 'CIF'>(currentValues.tipoEntrega);
+  const [custoFrete60Ton, setCustoFrete60Ton] = useState(currentValues.custoFrete60Ton);
 
   const handleAddScenario = () => {
     if (!nome.trim()) {
@@ -54,6 +58,8 @@ export const ScenarioManager = ({
       precoSojaChicago,
       precoSojaFisico,
       dolarPtax,
+      tipoEntrega,
+      custoFrete60Ton,
       dataCriacao: new Date(),
     };
 
@@ -128,7 +134,7 @@ export const ScenarioManager = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
           <div className="space-y-2">
             <Label>Preço Soja Chicago</Label>
             <div className="relative">
@@ -165,6 +171,33 @@ export const ScenarioManager = ({
                 type="number"
                 value={dolarPtax}
                 onChange={(e) => setDolarPtax(parseFloat(e.target.value) || 0)}
+                className="bg-surface border-border pl-8"
+                step="0.01"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Tipo de Entrega</Label>
+            <Select value={tipoEntrega} onValueChange={(value: 'FOB' | 'CIF') => setTipoEntrega(value)}>
+              <SelectTrigger className="bg-surface border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-surface border-border z-50">
+                <SelectItem value="FOB">FOB/Itaí</SelectItem>
+                <SelectItem value="CIF">CIF/Santos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Custo Frete 60 Ton</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+              <Input
+                type="number"
+                value={custoFrete60Ton}
+                onChange={(e) => setCustoFrete60Ton(parseFloat(e.target.value) || 0)}
                 className="bg-surface border-border pl-8"
                 step="0.01"
               />
@@ -226,6 +259,14 @@ export const ScenarioManager = ({
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Dólar Ptax:</span>
                     <span className="font-semibold text-foreground">R$ {scenario.dolarPtax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Entrega:</span>
+                    <span className="font-semibold text-foreground">{scenario.tipoEntrega}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Frete 60 Ton:</span>
+                    <span className="font-semibold text-foreground">R$ {scenario.custoFrete60Ton.toFixed(2)}</span>
                   </div>
                 </div>
               </Card>
